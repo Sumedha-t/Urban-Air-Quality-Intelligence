@@ -68,8 +68,7 @@ export const getSourceAttributionData = async (id) => {
   if (USE_MOCK) {
     await delay(200);
     const attribution = mockDb.getSourceAttribution(id);
-    const estimator = mockDb.getConstructionEstimator(id);
-    return { attribution, estimator };
+    return { attribution };
   }
   const response = await client.get(`/aqi/attribution?location_id=${id}`);
   return response.data;
@@ -78,7 +77,7 @@ export const getSourceAttributionData = async (id) => {
 export const getPriorityRegions = async () => {
   if (USE_MOCK) {
     await delay(300);
-    return mockDb.mockPriorityDashboard;
+    return [];
   }
   const response = await client.get('/admin/priority');
   return response.data;
@@ -218,5 +217,41 @@ export const getRecommendations = async (id) => {
     ];
   }
   const response = await client.get(`/ai/recommendations?location_id=${id}`);
+  return response.data;
+};
+
+export const getCombinedHourlyForecast = async (id) => {
+  if (USE_MOCK) {
+    await delay(150);
+    return mockDb.getCombinedHourlyForecast(id);
+  }
+  const response = await client.get(`/aqi/forecast/hourly?location_id=${id}`);
+  return response.data;
+};
+
+export const getRegionSpecificPriority = async (id) => {
+  if (USE_MOCK) {
+    await delay(200);
+    return mockDb.getRegionSpecificPriority(id);
+  }
+  const response = await client.get(`/admin/priority/regions?location_id=${id}`);
+  return response.data;
+};
+
+export const getAqiAffectingAttributes = async (id) => {
+  if (USE_MOCK) {
+    await delay(150);
+    return mockDb.getAqiAffectingAttributes(id);
+  }
+  const response = await client.get(`/citizen/affecting-attributes?location_id=${id}`);
+  return response.data;
+};
+
+export const triggerEmergencySMS = async (locationName, aqi) => {
+  if (USE_MOCK) {
+    await delay(400);
+    return mockDb.alertEmergencyContacts(locationName, aqi);
+  }
+  const response = await client.post('/ai/health/alert-emergency', { location_name: locationName, aqi });
   return response.data;
 };

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { getPriorityRegions, getComplaints, voteComplaint, getAlerts } from '../../services/api';
-import { FiAlertTriangle, FiMessageSquare, FiTrendingUp, FiBell, FiPlus, FiCheck } from 'react-icons/fi';
+import { useUser } from '../../App';
+import { getRegionSpecificPriority, getComplaints, voteComplaint, getAlerts } from '../../services/api';
+import { FiAlertTriangle, FiMessageSquare, FiTrendingUp, FiBell, FiPlus, FiTrash2 } from 'react-icons/fi';
 import { getAqiCategory, mockAlerts } from '../../services/mockData';
 
 export default function PriorityDashboard() {
+  const { activeLocation } = useUser();
   const [priorityRegions, setPriorityRegions] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,10 +21,14 @@ export default function PriorityDashboard() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const regions = await getPriorityRegions();
+        const regions = await getRegionSpecificPriority(activeLocation.id);
         const comps = await getComplaints();
+        
         setPriorityRegions(regions);
-        setComplaints(comps);
+        
+        // Sort complaints: highest votes on top
+        const sortedComps = [...comps].sort((a, b) => b.votes - a.votes);
+        setComplaints(sortedComps);
       } catch (err) {
         console.error("Failed to load priority data", err);
       } finally {
@@ -30,12 +36,17 @@ export default function PriorityDashboard() {
       }
     };
     fetchData();
-  }, []);
+  }, [activeLocation]);
 
   const handleUpdateStatus = (id, newStatus) => {
-    setComplaints(prev =>
-      prev.map(c => c.id === id ? { ...c, status: newStatus } : c)
-    );
+    if (newStatus === "Mitigated") {
+      // Remove complaint from the list
+      setComplaints(prev => prev.filter(c => c.id !== id));
+    } else {
+      setComplaints(prev =>
+        prev.map(c => c.id === id ? { ...c, status: newStatus } : c)
+      );
+    }
   };
 
   const handleDispatchAlert = (e) => {
@@ -79,7 +90,7 @@ export default function PriorityDashboard() {
           Priority Dashboard & Alerts Center
         </h2>
         <p className="text-xs text-gray-400 mt-1 font-medium">
-          Deduce regions requiring immediate action based on pollution, citizen complaints, and voting weight.
+          Deduce sub-regions requiring immediate action inside {activeLocation.name} and compose safety alerts.
         </p>
       </div>
 
@@ -88,11 +99,11 @@ export default function PriorityDashboard() {
         {/* Priority Rankings and Complaints (Col 1-2) */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Priority Rankings Table */}
+          {/* Priority Rankings Table (City Specific) */}
           <div className="bg-white rounded-3xl p-6 border border-maroon-100/50 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-800 text-sm tracking-tight flex items-center gap-1.5 border-b border-gray-50 pb-3">
               <FiTrendingUp className="text-maroon-800" />
-              Urgent Regional Intervention Ranks
+              Sub-Region Mitigation Ranks inside {activeLocation.name}
             </h3>
             
             <div className="overflow-x-auto">
@@ -100,10 +111,9 @@ export default function PriorityDashboard() {
                 <thead>
                   <tr className="border-b border-gray-100 text-gray-400 font-bold">
                     <th className="py-2.5">Rank</th>
-                    <th className="py-2.5">Location</th>
+                    <th className="py-2.5">Sub-Region / Ward</th>
                     <th className="py-2.5">AQI</th>
-                    <th className="py-2.5">Votes</th>
-                    <th className="py-2.5 font-bold">Priority Score</th>
+                    <th className="py-2.5 font-bold">Mitigation Urgency Index</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -113,7 +123,7 @@ export default function PriorityDashboard() {
                       <tr key={region.rank} className="hover:bg-gray-50/50">
                         <td className="py-3 font-bold text-slate-800">#{region.rank}</td>
                         <td className="py-3">
-                          <p className="font-bold text-slate-700">{region.location}</p>
+                          <p className="font-bold text-slate-700">{region.location.split(',')[0]}</p>
                           <p className="text-[10px] text-gray-400">{region.district} | {region.populationDensity.toLocaleString()} cap/km²</p>
                         </td>
                         <td className="py-3">
@@ -121,11 +131,10 @@ export default function PriorityDashboard() {
                             {region.aqi} {cat.label}
                           </span>
                         </td>
-                        <td className="py-3 font-mono">{region.votesCount} upvotes</td>
                         <td className="py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-black text-maroon-800 font-mono text-sm">{region.score}%</span>
-                            <div className="h-1.5 w-16 bg-gray-100 border rounded-full overflow-hidden">
+                            <div className="h-1.5 w-24 bg-gray-50 border rounded-full overflow-hidden">
                               <div className="h-full bg-maroon-800" style={{ width: `${region.score}%` }}></div>
                             </div>
                           </div>
@@ -141,67 +150,69 @@ export default function PriorityDashboard() {
           {/* Citizen Complaints review board */}
           <div className="bg-white rounded-3xl p-6 border border-maroon-100/50 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-800 text-sm tracking-tight flex items-center gap-1.5 border-b border-gray-50 pb-3">
-              <FiMessageSquare className="text-maroon-800 animate-pulse" />
-              Citizen Complaints Dispatcher
+              <FiMessageSquare className="text-maroon-800" />
+              Citizen Complaints Dispatcher (Sorted by Votes)
             </h3>
 
             <div className="space-y-4">
-              {complaints.map((c) => (
-                <div key={c.id} className="p-4 rounded-2xl border border-gray-100 hover:border-maroon-100/40 bg-gray-50/40 flex flex-col md:flex-row gap-4 justify-between transition-all">
-                  
-                  {/* Text details */}
-                  <div className="space-y-1.5 text-xs max-w-xl">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-full font-bold text-[9px] bg-maroon-50 border border-maroon-100 text-maroon-800 uppercase">
-                        {c.category}
-                      </span>
-                      <span className="text-gray-400 font-mono">{c.date}</span>
+              {complaints.length > 0 ? (
+                complaints.map((c) => (
+                  <div key={c.id} className="p-4 rounded-2xl border border-gray-100 hover:border-maroon-100/40 bg-gray-50/40 flex flex-col md:flex-row gap-4 justify-between transition-all">
+                    
+                    <div className="space-y-1.5 text-xs max-w-xl">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-full font-bold text-[9px] bg-maroon-50 border border-maroon-100 text-maroon-800 uppercase">
+                          {c.category}
+                        </span>
+                        <span className="text-gray-400 font-mono">{c.date}</span>
+                        <span className="text-maroon-800 font-bold bg-maroon-50 px-1.5 py-0.5 rounded font-mono text-[9px] border border-maroon-100/50">
+                          {c.votes} votes
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-slate-800 text-sm leading-snug">{c.location}</h4>
+                      <p className="text-slate-600 leading-relaxed text-[11px]">{c.description}</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                        Status: <span className="text-slate-600 font-semibold">{c.status}</span>
+                      </p>
                     </div>
-                    <h4 className="font-bold text-slate-800 text-sm leading-snug">{c.location}</h4>
-                    <p className="text-slate-600 leading-relaxed">{c.description}</p>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                      Status: <span className="text-slate-700">{c.status}</span> ({c.votes} support votes)
-                    </p>
-                  </div>
 
-                  {/* Actions column */}
-                  <div className="flex flex-row md:flex-col justify-end md:justify-center items-end gap-2 shrink-0 border-t md:border-t-0 border-gray-100 pt-3 md:pt-0">
-                    <button
-                      onClick={() => handleUpdateStatus(c.id, "Pending Investigation")}
-                      className={`px-3 py-1.5 rounded-xl font-bold text-[10px] transition-all border ${
-                        c.status.includes("Pending") 
-                          ? 'bg-maroon-800 border-maroon-900 text-white shadow-sm' 
-                          : 'bg-white border-gray-200 text-slate-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      Investigate
-                    </button>
-                    
-                    <button
-                      onClick={() => handleUpdateStatus(c.id, "Inspected & Warning Issued")}
-                      className={`px-3 py-1.5 rounded-xl font-bold text-[10px] transition-all border ${
-                        c.status.includes("Inspected") 
-                          ? 'bg-amber-600 border-amber-700 text-white shadow-sm' 
-                          : 'bg-white border-gray-200 text-slate-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      Issue Warning
-                    </button>
-                    
-                    <button
-                      onClick={() => handleUpdateStatus(c.id, "Mitigated")}
-                      className={`px-3 py-1.5 rounded-xl font-bold text-[10px] transition-all border ${
-                        c.status.includes("Mitigated") 
-                          ? 'bg-emerald-600 border-emerald-700 text-white shadow-sm' 
-                          : 'bg-white border-gray-200 text-slate-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      Close Issue
-                    </button>
-                  </div>
+                    {/* Actions */}
+                    <div className="flex flex-row md:flex-col justify-end md:justify-center items-end gap-2 shrink-0 border-t md:border-t-0 border-gray-100 pt-3 md:pt-0">
+                      <button
+                        onClick={() => handleUpdateStatus(c.id, "Pending Investigation")}
+                        className={`px-3 py-1.5 rounded-xl font-bold text-[10px] transition-all border cursor-pointer ${
+                          c.status.includes("Pending") 
+                            ? 'bg-maroon-800 border-maroon-900 text-white shadow-sm' 
+                            : 'bg-white border-gray-200 text-slate-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        Investigate
+                      </button>
+                      
+                      <button
+                        onClick={() => handleUpdateStatus(c.id, "Inspected & Warning Issued")}
+                        className={`px-3 py-1.5 rounded-xl font-bold text-[10px] transition-all border cursor-pointer ${
+                          c.status.includes("Inspected") 
+                            ? 'bg-amber-600 border-amber-700 text-white shadow-sm' 
+                            : 'bg-white border-gray-200 text-slate-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        Issue Warning
+                      </button>
+                      
+                      <button
+                        onClick={() => handleUpdateStatus(c.id, "Mitigated")}
+                        className="px-3 py-1.5 rounded-xl font-bold text-[10px] bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 flex items-center gap-1 transition-all cursor-pointer"
+                      >
+                        <FiTrash2 className="w-3 h-3" /> Close Issue
+                      </button>
+                    </div>
 
-                </div>
-              ))}
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-gray-400 text-center py-6">All citizen complaints have been resolved and closed.</p>
+              )}
             </div>
           </div>
 
@@ -221,7 +232,6 @@ export default function PriorityDashboard() {
               </div>
             )}
 
-            {/* Alert Type */}
             <div className="space-y-1">
               <label>Alert Type / Topic</label>
               <select
@@ -236,7 +246,6 @@ export default function PriorityDashboard() {
               </select>
             </div>
 
-            {/* Severity level */}
             <div className="space-y-1">
               <label>Incident Severity Level</label>
               <select
@@ -250,20 +259,18 @@ export default function PriorityDashboard() {
               </select>
             </div>
 
-            {/* Area scope */}
             <div className="space-y-1">
               <label>Target Region Scope</label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Anand Vihar, East Delhi or Outer Ring Road"
+                placeholder="e.g. Anand Vihar, East Delhi"
                 value={newAlertScope}
                 onChange={(e) => setNewAlertScope(e.target.value)}
                 className="w-full bg-gray-50 border border-gray-200 focus:bg-white rounded-xl px-3 py-2.5 outline-none font-medium text-slate-700 transition-all text-xs"
               />
             </div>
 
-            {/* Message */}
             <div className="space-y-1">
               <label>Broadcast Message Details</label>
               <textarea

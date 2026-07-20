@@ -21,15 +21,10 @@ export default function MainLayout() {
         </main>
       </div>
 
-      {/* National Portal footer block */}
-      <footer className="w-full bg-slate-900 border-t border-slate-800 py-6 px-8 text-center text-slate-400 text-xs">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© 2026 Ministry of Environment, Forest & Climate Change. All rights reserved.</p>
-          <div className="flex gap-4">
-            <a href="#/admin" className="hover:text-white hover:underline transition-colors">CPCB Portal</a>
-            <a href="#/admin" className="hover:text-white hover:underline transition-colors">Digital India</a>
-            <a href="#/admin" className="hover:text-white hover:underline transition-colors">National Clean Air Programme (NCAP)</a>
-          </div>
+      {/* Clean minimal footer */}
+      <footer className="w-full bg-slate-900 py-4 px-8 text-center text-slate-500 text-[10px]">
+        <div className="max-w-6xl mx-auto flex items-center justify-center">
+          <p>© 2026 Urban Air Quality Intelligence Platform. Decision Support System.</p>
         </div>
       </footer>
     </div>

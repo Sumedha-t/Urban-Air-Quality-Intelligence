@@ -25,8 +25,15 @@ export default function Header() {
     <header className="sticky top-0 z-40 w-full bg-white border-b border-maroon-100 card-shadow px-4 py-2 flex flex-col md:flex-row items-center justify-between gap-4">
       {/* Brand Emblem Logo Header */}
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 flex items-center justify-center rounded-full bg-maroon-50 border border-maroon-200 text-maroon-800 font-serif font-bold text-lg shadow-sm">
-          🇮🇳
+        <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-sky-50 border border-sky-100 text-sky-600 shadow-sm shrink-0">
+          <svg className="h-7 w-7" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Wave 1 */}
+            <path d="M10,40 C35,20 65,55 90,30 C75,45 45,25 10,40 Z" fill="currentColor" />
+            {/* Wave 2 */}
+            <path d="M5,55 C32,35 68,70 95,45 C78,60 48,40 5,55 Z" fill="currentColor" />
+            {/* Wave 3 */}
+            <path d="M15,25 C40,5 60,35 85,15 C70,28 45,12 15,25 Z" fill="currentColor" />
+          </svg>
         </div>
         <div>
           <div className="flex items-center gap-2">

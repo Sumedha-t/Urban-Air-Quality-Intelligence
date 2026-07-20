@@ -75,16 +75,7 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      {/* Government Smart City Notice */}
-      <div className="mt-8 pt-4 border-t border-gray-100 text-[10px] text-gray-400 space-y-1.5 hidden md:block">
-        <p className="font-semibold text-slate-500 uppercase tracking-wide">National Informatics Centre</p>
-        <p className="leading-relaxed">This dashboard hosts spatial datasets aligned with national environment directives. Data feeds are powered by Central Pollution Control Board (CPCB).</p>
-        <div className="flex gap-2 font-medium text-slate-500 mt-2">
-          <a href="#/privacy" className="hover:underline">Privacy Policy</a>
-          <span>•</span>
-          <a href="#/terms" className="hover:underline">T&C</a>
-        </div>
-      </div>
+      {/* Footer notice removed for clean design */}
     </aside>
   );
 }

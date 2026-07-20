@@ -4,13 +4,20 @@ import L from 'leaflet';
 import { FiLayers, FiInfo, FiWind, FiNavigation } from 'react-icons/fi';
 import { getAqiCategory } from '../../services/mockData';
 
-// Fix Vite asset URL resolution for Leaflet markers
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+// Custom Map zoom listener
+function ZoomTracker({ onZoomChange }) {
+  const map = useMap();
+  useEffect(() => {
+    const handleZoom = () => {
+      onZoomChange(map.getZoom());
+    };
+    map.on('zoomend', handleZoom);
+    return () => {
+      map.off('zoomend', handleZoom);
+    };
+  }, [map, onZoomChange]);
+  return null;
+}
 
 // Component to handle map view updates dynamically
 function MapController({ center, zoom }) {
@@ -26,6 +33,7 @@ function MapController({ center, zoom }) {
 export default function InteractiveMap({ locations, activeLocation, onSelectLocation }) {
   const [mapCenter, setMapCenter] = useState([20.5937, 78.9629]); // Central India
   const [mapZoom, setMapZoom] = useState(5);
+  const [currentZoom, setCurrentZoom] = useState(5);
   
   // Layer Toggles
   const [layers, setLayers] = useState({
@@ -38,6 +46,21 @@ export default function InteractiveMap({ locations, activeLocation, onSelectLoca
   // State / City Dropdowns
   const [selectedState, setSelectedState] = useState('');
   const [selectedCityId, setSelectedCityId] = useState('');
+
+  // Append DivIcon style override dynamically
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .custom-aqi-icon-div {
+        background: transparent !important;
+        border: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   // Extract unique states for filter
   const uniqueStates = [...new Set(locations.map(l => l.state))];
@@ -52,6 +75,7 @@ export default function InteractiveMap({ locations, activeLocation, onSelectLoca
     if (activeLocation) {
       setMapCenter([activeLocation.lat, activeLocation.lon]);
       setMapZoom(11); // Close zoom for selected city
+      setCurrentZoom(11);
       setSelectedState(activeLocation.state);
       setSelectedCityId(activeLocation.id);
     }
@@ -61,11 +85,11 @@ export default function InteractiveMap({ locations, activeLocation, onSelectLoca
     setSelectedState(stateName);
     setSelectedCityId('');
     
-    // Find first city in that state to pan
     const stateCity = locations.find(l => l.state === stateName);
     if (stateCity) {
       setMapCenter([stateCity.lat, stateCity.lon]);
-      setMapZoom(7); // Regional zoom
+      setMapZoom(8);
+      setCurrentZoom(8);
       onSelectLocation(stateCity.id);
     }
   };
@@ -76,6 +100,7 @@ export default function InteractiveMap({ locations, activeLocation, onSelectLoca
     if (city) {
       setMapCenter([city.lat, city.lon]);
       setMapZoom(11);
+      setCurrentZoom(11);
       onSelectLocation(cityId);
     }
   };
@@ -83,6 +108,17 @@ export default function InteractiveMap({ locations, activeLocation, onSelectLoca
   // Helper to color map overlays based on AQI
   const getCircleColor = (aqi) => {
     return getAqiCategory(aqi).hex;
+  };
+
+  // Create standard circular badge showing AQI text
+  const createAqiIcon = (aqi) => {
+    const cat = getAqiCategory(aqi);
+    return L.divIcon({
+      className: 'custom-aqi-icon-div',
+      html: `<div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-[10px] shadow-md border-2 border-white transition-all hover:scale-110" style="background-color: ${cat.hex}; cursor: pointer;">${aqi}</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
   };
 
   return (
@@ -128,8 +164,9 @@ export default function InteractiveMap({ locations, activeLocation, onSelectLoca
             setSelectedCityId('');
             setMapCenter([20.5937, 78.9629]);
             setMapZoom(5);
+            setCurrentZoom(5);
           }}
-          className="text-[10px] font-bold text-maroon-900 bg-maroon-50 border border-maroon-100 hover:bg-maroon-100/50 px-3 py-2 rounded-xl transition-all w-full sm:w-auto text-center"
+          className="text-[10px] font-bold text-maroon-900 bg-maroon-50 border border-maroon-100 hover:bg-maroon-100/50 px-3 py-2 rounded-xl transition-all w-full sm:w-auto text-center cursor-pointer"
         >
           Reset National View
         </button>
@@ -189,95 +226,116 @@ export default function InteractiveMap({ locations, activeLocation, onSelectLoca
           scrollWheelZoom={true}
           style={{ height: "100%", width: "100%" }}
         >
-          {/* Map Controller for Fly-To Panning */}
           <MapController center={mapCenter} zoom={mapZoom} />
+          <ZoomTracker onZoomChange={setCurrentZoom} />
 
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* AQI Heatmap Layers */}
-          {layers.heatmap && locations.map((loc) => (
-            <Circle
-              key={`heat-${loc.id}`}
-              center={[loc.lat, loc.lon]}
-              pathOptions={{
-                fillColor: getCircleColor(loc.aqi),
-                fillOpacity: 0.25,
-                color: getCircleColor(loc.aqi),
-                weight: 1.5,
-              }}
-              radius={25000} // 25 km dispersion heatmap circle
-            />
-          ))}
+          {/* Render circular heatmaps relatively */}
+          {layers.heatmap && (
+            currentZoom < 8 ? (
+              // City-level macro heatmaps
+              locations.map((loc) => (
+                <Circle
+                  key={`heat-macro-${loc.id}`}
+                  center={[loc.lat, loc.lon]}
+                  pathOptions={{
+                    fillColor: getCircleColor(loc.aqi),
+                    fillOpacity: 0.25,
+                    color: getCircleColor(loc.aqi),
+                    weight: 1.5,
+                  }}
+                  radius={28000}
+                />
+              ))
+            ) : (
+              // Region-specific micro heatmaps
+              locations.map((loc) => 
+                (loc.subRegions || []).map((sub, sIdx) => (
+                  <Circle
+                    key={`heat-micro-${loc.id}-${sIdx}`}
+                    center={[sub.lat, sub.lon]}
+                    pathOptions={{
+                      fillColor: getCircleColor(sub.aqi),
+                      fillOpacity: 0.25,
+                      color: getCircleColor(sub.aqi),
+                      weight: 1,
+                    }}
+                    radius={3000} // Close dispersion radius (3km)
+                  />
+                ))
+              )
+            )
+          )}
 
-          {/* Sensor Location Markers */}
-          {layers.sensors && locations.map((loc) => {
-            const category = getAqiCategory(loc.aqi);
-            return (
-              <Marker
-                key={`sensor-${loc.id}`}
-                position={[loc.lat, loc.lon]}
-                eventHandlers={{
-                  click: () => {
-                    onSelectLocation(loc.id);
-                  }
-                }}
-              >
-                <Popup>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-1 mb-1">
-                      <span className="font-bold text-slate-800">{loc.name}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${category.color}`}>
-                        {category.label}
-                      </span>
+          {/* Render circular numerical markers relatively */}
+          {layers.sensors && (
+            currentZoom < 8 ? (
+              // Main city markers
+              locations.map((loc) => (
+                <Marker
+                  key={`sensor-macro-${loc.id}`}
+                  position={[loc.lat, loc.lon]}
+                  icon={createAqiIcon(loc.aqi)}
+                  eventHandlers={{
+                    click: () => {
+                      onSelectLocation(loc.id);
+                    }
+                  }}
+                >
+                  <Popup>
+                    <div className="space-y-1.5 text-xs">
+                      <p className="font-bold text-slate-800">{loc.name} Station</p>
+                      <p className="font-semibold text-slate-500">AQI: <span className="font-bold font-mono text-slate-800">{loc.aqi}</span></p>
+                      <button 
+                        onClick={() => onSelectLocation(loc.id)}
+                        className="w-full text-[9px] bg-maroon-800 text-white font-bold py-1 rounded mt-1.5 hover:bg-maroon-900 cursor-pointer"
+                      >
+                        Focus Station Analytics
+                      </button>
                     </div>
-                    
-                    <div className="space-y-1 font-medium text-slate-600">
-                      <div className="flex justify-between">
-                        <span>Current AQI:</span>
-                        <span className="font-bold font-mono text-slate-900">{loc.aqi}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>PM2.5 Conc:</span>
-                        <span className="font-mono">{loc.pollutants.pm2_5} µg/m³</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Temp / Humidity:</span>
-                        <span className="font-mono">{loc.weather.temperature}°C / {loc.weather.humidity}%</span>
-                      </div>
-                      {layers.traffic && (
-                        <div className="flex justify-between text-maroon-700 font-semibold border-t border-gray-50 pt-1">
-                          <span>Traffic Jam:</span>
-                          <span>{loc.traffic.congestion_index}% Delay</span>
+                  </Popup>
+                </Marker>
+              ))
+            ) : (
+              // Zoomed-in detailed sub-region nodes
+              locations.map((loc) => 
+                (loc.subRegions || []).map((sub, sIdx) => (
+                  <Marker
+                    key={`sensor-micro-${loc.id}-${sIdx}`}
+                    position={[sub.lat, sub.lon]}
+                    icon={createAqiIcon(sub.aqi)}
+                  >
+                    <Popup>
+                      <div className="space-y-1.5 text-xs">
+                        <p className="font-bold text-slate-800">{sub.name}</p>
+                        <p className="text-gray-400 font-medium">{loc.name}, {loc.state}</p>
+                        <div className="font-semibold text-slate-600 mt-1">
+                          <p>AQI Score: <span className="font-bold text-slate-800 font-mono">{sub.aqi}</span></p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">Classification: {getAqiCategory(sub.aqi).label}</p>
                         </div>
-                      )}
-                    </div>
-                    
-                    <button
-                      onClick={() => onSelectLocation(loc.id)}
-                      className="w-full text-center mt-2 bg-maroon-800 text-white rounded-lg py-1 px-2 hover:bg-maroon-900 transition-all font-bold font-sans text-[10px]"
-                    >
-                      Focus Dashboard Analytics
-                    </button>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))
+              )
+            )
+          )}
 
           {/* Traffic markers overlays */}
           {layers.traffic && locations.map((loc) => (
             <Circle
               key={`traffic-${loc.id}`}
-              center={[loc.lat + 0.005, loc.lon - 0.005]} // Slightly offset
+              center={[loc.lat + 0.005, loc.lon - 0.005]}
               pathOptions={{
                 color: loc.traffic.congestion_index > 75 ? '#ef4444' : loc.traffic.congestion_index > 40 ? '#f59e0b' : '#10b981',
                 weight: 3,
                 fillColor: 'transparent',
               }}
-              radius={8000} // 8km grid
+              radius={8000}
             />
           ))}
 
