@@ -1,0 +1,85 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --font-sans: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-serif: 'Playfair Display', Georgia, Cambria, 'Times New Roman', Times, serif;
+  
+  --color-maroon-50: #fbf8f8;
+  --color-maroon-100: #f6efef;
+  --color-maroon-200: #eddcdc;
+  --color-maroon-300: #ddbfbf;
+  --color-maroon-400: #c59898;
+  --color-maroon-500: #a76969;
+  --color-maroon-600: #884b4b;
+  --color-maroon-700: #6f3b3b;
+  --color-maroon-800: #5c3232;
+  --color-maroon-900: #4a2b2b;
+  --color-maroon-950: #291515;
+
+  --color-primary: #6f3b3b;
+  --color-primary-dark: #4a2b2b;
+  
+  --color-gold-50: #fefcf3;
+  --color-gold-100: #fcf6d6;
+  --color-gold-500: #c59b27;
+  --color-gold-600: #a47e1d;
+  
+  --color-cream-50: #fdfbf9;
+  --color-cream-100: #faf6f0;
+  --color-cream-200: #f4eae0;
+}
+
+@layer base {
+  html, body, #root {
+    min-height: 100vh;
+    background-color: #fcfcfb;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1eded;
+}
+::-webkit-scrollbar-thumb {
+  background: #c5b4b4;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a78f8f;
+}
+
+/* Leaflet Overrides */
+.leaflet-container {
+  font-family: inherit;
+}
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eddcdc;
+}
+.leaflet-popup-content {
+  margin: 12px;
+  line-height: 1.4;
+}
+
+/* Animation utilities */
+.fade-in {
+  animation: fadeIn 0.4s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Glassmorphism elements */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(111, 59, 59, 0.08);
+}
