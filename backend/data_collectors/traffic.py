@@ -5,6 +5,8 @@ using the TomTom Traffic Flow API.
 
 from backend.config.settings import settings
 from backend.utils.http_client import get_json
+from backend.database.mongodb import mongodb
+from backend.repositories.traffic_repository import traffic_repository
 
 BASE_URL = "https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json"
 
@@ -26,7 +28,7 @@ def get_traffic(latitude: float, longitude: float):
 
     flow = data["flowSegmentData"]
 
-    return {
+    traffic_data = {
         "source": "TomTom",
         "latitude": latitude,
         "longitude": longitude,
@@ -40,12 +42,27 @@ def get_traffic(latitude: float, longitude: float):
         "timestamp": flow["coordinates"]["coordinate"][0]
     }
 
+    if mongodb.database is None:
+        mongodb.connect()
+
+    traffic_repository.save(traffic_data)
+
+    return traffic_data
+
 
 if __name__ == "__main__":
 
-    traffic = get_traffic(
-        latitude=12.9716,
-        longitude=77.5946
-    )
+    mongodb.connect()
 
-    print(traffic)
+    try:
+
+        traffic = get_traffic(
+            latitude=12.9716,
+            longitude=77.5946
+        )
+
+        print(traffic)
+
+    finally:
+
+        mongodb.disconnect()
