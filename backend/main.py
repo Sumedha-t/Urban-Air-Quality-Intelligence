@@ -7,6 +7,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from backend.database.mongodb import mongodb
+from backend.scheduler.scheduler import (
+    start_scheduler,
+    stop_scheduler,
+)
 
 from backend.routes.home import router as home_router
 from backend.routes.health import router as health_router
@@ -26,9 +30,13 @@ async def lifespan(app: FastAPI):
     # Startup
     mongodb.connect()
 
+    start_scheduler()
+
     yield
 
     # Shutdown
+    stop_scheduler()
+
     mongodb.disconnect()
 
 
