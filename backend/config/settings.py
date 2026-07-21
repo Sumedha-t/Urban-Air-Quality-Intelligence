@@ -35,6 +35,14 @@ class Settings:
         "TOMTOM_API_KEY"
     )
 
+    MONGODB_URI = os.getenv(
+        "MONGODB_URI"
+    )
+
+    # -----------------------------
+    # Validate environment variables
+    # -----------------------------
+
     if OPENWEATHER_API_KEY is None:
         raise ValueError(
             "OPENWEATHER_API_KEY not found in project .env"
@@ -43,6 +51,11 @@ class Settings:
     if TOMTOM_API_KEY is None:
         raise ValueError(
             "TOMTOM_API_KEY not found in project .env"
+        )
+
+    if MONGODB_URI is None:
+        raise ValueError(
+            "MONGODB_URI not found in project .env"
         )
 
 
