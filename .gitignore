@@ -16,3 +16,6 @@ __pycache__/
 
 # Pytest
 .pytest_cache/
+.ipynb_checkpoints/
+# ML datasets
+ml/datasets/
