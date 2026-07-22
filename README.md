@@ -23,6 +23,19 @@ The **Urban Air Quality Intelligence Platform** integrates multiple environmenta
 - Support data-driven urban governance
 
 ---
+---
+
+# ✨ Features
+
+- Real-time Air Quality Monitoring
+- Weather Data Integration
+- Traffic Flow Monitoring
+- Environmental Data Fusion
+- Historical Data Storage
+- RESTful API Services
+- Modular Backend Architecture
+- Scalable AI Pipeline
+- Decision Support Framework
 
 # 🏗 Overall System Architecture
 
@@ -84,37 +97,41 @@ The **Urban Air Quality Intelligence Platform** integrates multiple environmenta
 
 ```text
 Urban-Air-Quality-Intelligence/
-
-backend/
 │
-├── agents/
-│   ├── data_fusion.py
-│   ├── source_attribution.py      (Planned)
-│   ├── forecasting.py             (Planned)
-│   ├── decision_support.py        (Planned)
-│   └── citizen_agent.py           (Planned)
+├── backend/
+│   ├── agents/
+│   │   └── data_fusion.py
+│   ├── config/
+│   ├── data_collectors/
+│   │   ├── aqi.py
+│   │   ├── weather.py
+│   │   └── traffic.py
+│   ├── database/
+│   ├── repositories/
+│   ├── routes/
+│   ├── utils/
+│   ├── __init__.py
+│   └── main.py
 │
-├── config/
+├── docs/
+│   ├── API.md
+│   ├── Architecture.md
+│   └── Technology_Stack.md
 │
-├── data_collectors/
-│   ├── aqi.py
-│   ├── weather.py
-│   ├── traffic.py
-│   ├── satellite.py               (Planned)
-│   ├── cpcb.py                    (Planned)
-│   └── citizen_reports.py         (Planned)
-│
-├── database/
-├── models/
-├── routes/
-└── utils/
-
-frontend/
-docs/
-data/
+├── .gitignore
+├── README.md
+└── requirements.txt
 ```
 
----
+# 📚 Documentation
+
+Detailed documentation is available inside the **docs/** directory.
+
+- API Documentation
+- System Architecture
+- Technology Stack
+- Problem Statement
+- Literature Survey
 
 # 🔄 Backend Data Flow
 
@@ -292,8 +309,10 @@ Citizen Advisory
 
 ### Backend
 
+- ### Backend
+
 - Python
-- FastAPI *(Upcoming)*
+- FastAPI
 
 ### Frontend
 
@@ -301,7 +320,7 @@ Citizen Advisory
 
 ### Database
 
-- MongoDB *(Upcoming)*
+- MongoDB
 
 ### AI / Machine Learning
 
@@ -328,15 +347,16 @@ Citizen Advisory
 - [x] AQI Collector
 - [x] Weather Collector
 - [x] Traffic Collector
-- [x] Data Fusion Agent
+- [x] MongoDB Integration
+- [x] REST API Routes
+- [x] History APIs
+- [x] API Documentation
+- [x] System Architecture Documentation
 
 ---
 
 # 🚀 Upcoming Milestones
 
-- [ ] FastAPI Backend
-- [ ] MongoDB Integration
-- [ ] REST APIs
 - [ ] Citizen Reports
 - [ ] Satellite Collector
 - [ ] CPCB Collector
@@ -353,8 +373,8 @@ Citizen Advisory
 | Name | Responsibility |
 |------|----------------|
 | Sumedha Tatti | Backend Development, AI Pipeline, System Architecture |
-| Team Member | Frontend Development |
-| Team Member | Documentation & Presentation |
+| Pratyusha C S| Frontend Development |
+| Aditi Anil Kulkarni | Documentation & Presentation ,API Documentation|
 
 ---
 
