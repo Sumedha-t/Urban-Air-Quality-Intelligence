@@ -19,6 +19,8 @@ from backend.routes.weather import router as weather_router
 from backend.routes.traffic import router as traffic_router
 from backend.routes.fusion import router as fusion_router
 from backend.routes.history import router as history_router
+from backend.routes.forecast import router as forecast_router
+from fastapi.middleware.cors import CORSMiddleware
 
 
 @asynccontextmanager
@@ -46,6 +48,22 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+app = FastAPI(
+    title="Urban Air Quality Intelligence Platform",
+    description="Backend API for Urban Air Quality Intelligence Platform",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Register routes
 app.include_router(home_router)
@@ -55,3 +73,4 @@ app.include_router(weather_router)
 app.include_router(traffic_router)
 app.include_router(fusion_router)
 app.include_router(history_router)
+app.include_router(forecast_router)
